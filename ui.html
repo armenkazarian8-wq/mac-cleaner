@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Mac Cleaner</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--g1:#3b1d6e;--g2:#b0306e;--panel:rgba(255,255,255,.08);--panel2:rgba(255,255,255,.14);--line:rgba(255,255,255,.12);
+ --text:#fff;--muted:rgba(255,255,255,.66);--dim:rgba(255,255,255,.42);--ok:#4ade80;--bad:#ff6b6b;--warnc:#fbbf24}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#1a1030;color:var(--text);font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;
+ -webkit-user-select:none;user-select:none;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input[type=checkbox]{appearance:none;-webkit-appearance:none;width:18px;height:18px;border-radius:6px;border:1.5px solid rgba(255,255,255,.45);
+ flex:none;cursor:pointer;display:grid;place-items:center;transition:.15s}
+input[type=checkbox]:checked,input[type=checkbox]:indeterminate{background:#fff;border-color:#fff}
+input[type=checkbox]:checked::after{content:"";width:9px;height:5px;border:2px solid var(--g1);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+input[type=checkbox]:indeterminate::after{content:"";width:8px;height:2px;background:var(--g1);border-radius:1px}
+select,input[type=search]{font:inherit;color:#fff;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 8px;outline:0}
+select option{color:#000}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+
+.bg{position:fixed;inset:0;transition:opacity .7s;background:radial-gradient(1200px 700px at 75% 0%,var(--a),transparent 70%),
+ radial-gradient(900px 600px at 10% 100%,var(--b),transparent 70%),linear-gradient(160deg,#160c2a,#0d0718)}
+.app{position:relative;display:grid;grid-template-columns:232px 1fr;height:100vh}
+.side{background:rgba(10,4,24,.35);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-right:1px solid var(--line);
+ padding:52px 12px 14px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.side h6{font-size:11px;font-weight:600;color:var(--dim);margin:14px 10px 4px;letter-spacing:.02em}
+.nav{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:9px;color:rgba(255,255,255,.85);text-align:left;width:100%;transition:.15s}
+.nav:hover{background:rgba(255,255,255,.06)}.nav.on{background:rgba(255,255,255,.16);color:#fff}
+.nav .ic{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;flex:none}
+.nav .ic svg{width:14px;height:14px}.nav .badge{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.diskbox{margin-top:auto;padding:12px;border-radius:12px;background:var(--panel);font-size:12px}
+.diskbox .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.15);margin:8px 0 6px;overflow:hidden}
+.diskbox .bar div{height:100%;border-radius:3px;background:linear-gradient(90deg,#fff,rgba(255,255,255,.7));transition:width .8s}
+.main{position:relative;overflow:hidden;display:flex;flex-direction:column}
+.drag{height:40px;flex:none}
+.view{flex:1;display:flex;flex-direction:column;min-height:0;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+
+/* hero / intro */
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px 30px}
+.orb{width:180px;height:180px;border-radius:50%;display:grid;place-items:center;position:relative;margin-bottom:26px;
+ background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.35),rgba(255,255,255,.06) 60%);box-shadow:0 30px 80px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.25)}
+.orb svg{width:84px;height:84px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.3))}
+.orb.spin::before,.orb.spin::after{content:"";position:absolute;inset:-14px;border-radius:50%;border:2px solid transparent;border-top-color:#fff;animation:rot 1.2s linear infinite}
+.orb.spin::after{inset:-28px;border-top-color:rgba(255,255,255,.45);animation-duration:2s;animation-direction:reverse}
+.orb.pulse{animation:pulse 2.4s ease-in-out infinite}
+@keyframes rot{to{transform:rotate(360deg)}}@keyframes pulse{50%{transform:scale(1.04)}}
+.hero h1{font-size:32px;font-weight:700;letter-spacing:-.02em}.hero p.sub{color:var(--muted);font-size:15px;margin-top:8px;max-width:520px}
+.feats{display:grid;gap:10px;margin:24px 0 6px;text-align:left}
+.feats div{display:flex;gap:10px;align-items:center;color:rgba(255,255,255,.88);font-size:14px}
+.feats svg{width:18px;height:18px;flex:none;opacity:.9}
+.opts{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:18px;color:var(--muted)}
+.opts label{display:flex;gap:6px;align-items:center}
+.big{font-size:56px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.dock{flex:none;display:flex;justify-content:center;align-items:center;gap:22px;padding:6px 0 30px;position:relative}
+.go{width:92px;height:92px;border-radius:50%;font-size:16px;font-weight:600;position:relative;
+ background:linear-gradient(160deg,rgba(255,255,255,.38),rgba(255,255,255,.12));box-shadow:0 12px 40px rgba(0,0,0,.35),inset 0 0 0 1.5px rgba(255,255,255,.55);transition:.2s}
+.go::before{content:"";position:absolute;inset:-8px;border-radius:50%;border:1.5px solid rgba(255,255,255,.22)}
+.go:hover{transform:scale(1.05);background:linear-gradient(160deg,rgba(255,255,255,.48),rgba(255,255,255,.18))}
+.go:disabled{opacity:.4;transform:none;cursor:default}
+.dock .side-info{position:absolute;right:30px;color:var(--muted);text-align:right;font-size:12px}
+.dock .side-info b{display:block;color:#fff;font-size:18px}
+.link{color:#fff;text-decoration:underline;text-underline-offset:3px;opacity:.85}.link:hover{opacity:1}
+.pill{padding:8px 16px;border-radius:20px;background:var(--panel2);font-weight:500}.pill:hover{background:rgba(255,255,255,.22)}
+
+/* summary chips */
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px;max-width:760px}
+.chip{padding:10px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);min-width:150px;text-align:left}
+.chip b{display:block;font-size:16px}.chip span{color:var(--muted);font-size:12px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,220px));gap:16px;margin-top:28px}
+.tile{padding:18px;border-radius:16px;background:var(--panel);border:1px solid var(--line);text-align:left;display:flex;flex-direction:column;gap:6px}
+.tile .ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:4px}.tile .ic svg{width:20px;height:20px}
+.tile b{font-size:20px}.tile span{color:var(--muted);font-size:12px}.tile .pill{align-self:flex-start;margin-top:6px;padding:5px 12px;font-size:12px}
+.tile.wait{opacity:.45}
+
+/* review */
+.review{flex:1;display:grid;grid-template-columns:300px 1fr;gap:14px;padding:0 22px;min-height:0}
+.pane{background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:16px;overflow:auto;min-height:0}
+.cat{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}
+.cat:hover{background:rgba(255,255,255,.05)}.cat.on{background:rgba(255,255,255,.13)}
+.cat .t{flex:1;min-width:0}.cat .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cat .t small{color:var(--dim)}
+.sz{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.rhead{position:sticky;top:0;z-index:2;background:rgba(30,16,50,.92);backdrop-filter:blur(20px);padding:14px 16px;border-bottom:1px solid var(--line)}
+.rhead h3{font-size:16px}.rhead p{color:var(--muted);margin-top:2px}.rhead .tools{display:flex;gap:8px;margin-top:10px;align-items:center}
+.rhead .tools input{flex:1}.warnbox{margin-top:8px;color:var(--warnc);font-size:12px}
+.row{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.row:hover{background:rgba(255,255,255,.04)}.row .t{flex:1;min-width:0}
+.row .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .t small{color:var(--dim);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small.w{color:var(--warnc)}
+.row img,.row .fi{width:32px;height:32px;flex:none;border-radius:7px}
+.row .fi{display:grid;place-items:center;background:rgba(255,255,255,.1)}.row .fi svg{width:16px;height:16px;opacity:.8}
+.chev{width:22px;height:22px;display:grid;place-items:center;border-radius:6px;flex:none;color:var(--muted);transition:transform .15s}
+.chev:hover{background:rgba(255,255,255,.1)}.chev.open{transform:rotate(90deg)}.chev svg{width:12px;height:12px}
+.kids .row{padding-left:66px;background:rgba(0,0,0,.12)}
+.reveal{opacity:0;padding:3px 8px;border-radius:6px;background:var(--panel2);font-size:11px}.row:hover .reveal{opacity:1}
+.empty{padding:50px 20px;text-align:center;color:var(--muted)}
+.banner{margin:0 22px 12px;padding:10px 14px;border-radius:12px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.35);display:flex;gap:10px;align-items:center}
+.banner span{flex:1;text-align:left}.banner span:first-child{flex:none;display:grid}.banner svg{width:20px;height:20px;color:var(--warnc)}.hero .banner{max-width:620px;margin-left:0;margin-right:0}.toolbar{display:flex;align-items:center;gap:14px;padding:0 24px 12px}
+.toolbar h2{font-size:22px;flex:1}
+
+/* lens */
+.crumbs{display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:0 24px 10px;color:var(--muted)}
+.crumbs button{padding:3px 8px;border-radius:6px}.crumbs button:hover{background:var(--panel);color:#fff}
+.lrow{position:relative;display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.lrow .barbg{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border-radius:0 6px 6px 0;pointer-events:none}
+.lrow .t{flex:1;min-width:0;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow.dir .t{cursor:pointer}.lrow.dir .t:hover{text-decoration:underline}
+.lrow > *{position:relative}.qs{display:flex;gap:8px;padding:0 24px 12px;flex-wrap:wrap}
+.qs button{padding:5px 12px;border-radius:14px;background:var(--panel);font-size:12px}.qs button:hover{background:var(--panel2)}
+
+/* maintenance */
+.tasks{flex:1;overflow:auto;padding:0 24px;display:grid;gap:10px;align-content:start;max-width:820px;width:100%;margin:0 auto}
+.task{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.task .t{flex:1}.task .t b{font-size:14px}.task .t p{color:var(--muted);margin-top:2px}
+.tag{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.14);margin-left:6px;vertical-align:2px}
+.res{font-size:12px;font-weight:600}.res.ok{color:var(--ok)}.res.bad{color:var(--bad)}
+
+/* modal + toast */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:grid;place-items:center;z-index:50;animation:fade .2s}
+.card{width:440px;max-width:90vw;background:#2a1a45;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.card h3{font-size:17px}.card p{color:var(--muted);margin-top:8px;white-space:pre-line}
+.card .btns{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+.btn{padding:8px 18px;border-radius:9px;background:var(--panel2);font-weight:600}.btn.primary{background:#fff;color:#2a1a45}.btn.danger{background:#ff5f57;color:#fff}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:rgba(20,10,35,.92);border:1px solid var(--line);
+ padding:10px 18px;border-radius:12px;z-index:60;animation:fade .25s;max-width:70vw}
+.fails{margin-top:16px;max-width:620px;max-height:150px;overflow:auto;text-align:left;font-size:12px;color:var(--muted);background:rgba(0,0,0,.2);border-radius:10px;padding:10px 12px}
+</style></head><body>
+<div class="bg" id="bgA"></div><div class="bg" id="bgB" style="opacity:0"></div>
+<div class="app">
+ <nav class="side" id="side"></nav>
+ <main class="main"><div class="drag"></div><div class="view" id="view"></div></main>
+</div>
+<script>
+(()=>{ // scoped so browser extensions that inject globals (e.g. a global `render`) can't collide
+const TOKEN="__TOKEN__";
+// ─── icons ───
+const P={
+ sparkle:'<path d="M12 2l2.2 6.3L20.5 10l-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-1.7z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>',
+ broom:'<path d="M14 3l7 7"/><path d="M17.5 6.5l-6 6"/><path d="M11.5 12.5c-3 0-6.5 2-8.5 8.5 6.5-2 8.5-5.5 8.5-8.5z"/><path d="M7 17l2 2"/>',
+ db:'<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+ trash:'<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/>',
+ gauge:'<path d="M4 18a9 9 0 1 1 16 0"/><path d="M12 13l4-5"/><circle cx="12" cy="14" r="1.5"/>',
+ wrench:'<path d="M15 6a4 4 0 0 0-5.3 5.2L4 17v3h3l5.8-5.7A4 4 0 0 0 18 9l-2.5 2.5-2-2L16 7"/>',
+ apps:'<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
+ lens:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/><path d="M10.5 7v7M7 10.5h7"/>',
+ file:'<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/>',
+ copy:'<rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h2"/>',
+ folder:'<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ check:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/>',
+ chev:'<path d="M9 5l7 7-7 7"/>',
+ warn:'<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5v.5"/>'};
+const svg=(n,sw=2)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${P[n]}</svg>`;
+
+// ─── modules ───
+const M={
+ smart:{t:"Smart Scan",ic:"sparkle",g:["#6d28d9","#db2777"],sub:"Clean up junk, find unused apps and spot large files — all in one scan.",
+  feats:["Cleans caches, logs and leftover junk","Finds apps you no longer use","Points out large and old files"]},
+ junk:{grp:"Cleanup",t:"System Junk",ic:"broom",g:["#0f766e","#10b981"],sub:"Remove caches, logs, temp files and other junk that piles up over time.",
+  feats:["User & system caches and logs","Browser and developer caches","Installers, temp files and incomplete downloads"],verb:"Clean",noun:"junk"},
+ system:{grp:"Cleanup",t:"System Data",ic:"db",g:["#0e7490","#06b6d4"],sub:"Dig into the hidden “System Data” in Storage settings — the big stuff macOS doesn’t show you.",
+  feats:["iPhone simulators & simulator runtimes","Docker disk images, device backups and updates","Time Machine local snapshots"],verb:"Remove",noun:"system data"},
+ trash:{grp:"Cleanup",t:"Trash Bins",ic:"trash",g:["#047857","#84cc16"],sub:"Empty the Trash on your Mac and any connected drives.",feats:["Your Trash","Trash on external drives"],verb:"Empty",noun:"in the Trash"},
+ agents:{grp:"Speed",t:"Optimization",ic:"gauge",g:["#c2410c","#f59e0b"],sub:"Control which programs launch silently in the background.",
+  feats:["Your launch agents","System-wide agents and daemons","Spots broken ones left by removed apps"],verb:"Remove",noun:"background items",direct:1},
+ maint:{grp:"Speed",t:"Maintenance",ic:"wrench",g:["#b45309","#f97316"],sub:"Run quick tune-ups that keep macOS responsive.",custom:1},
+ apps:{grp:"Applications",t:"Uninstaller",ic:"apps",g:["#1d4ed8","#38bdf8"],sub:"Remove apps completely — including the files they leave scattered around.",
+  feats:["Removes apps with all their leftovers","Finds apps you don’t use anymore","Cleans leftovers of apps you already deleted"],verb:"Uninstall",noun:"apps & leftovers",direct:1},
+ lens:{grp:"Files",t:"Space Lens",ic:"lens",g:["#5b21b6","#a78bfa"],sub:"See what’s taking up space, folder by folder.",custom:1},
+ large:{grp:"Files",t:"Large & Old Files",ic:"file",g:["#7e22ce","#e879f9"],sub:"Find big files and old downloads you forgot about.",
+  feats:["Files over a size you choose","Downloads you haven’t opened in months","Removed items go to the Trash"],verb:"Remove",noun:"large & old files",direct:1},
+ dupes:{grp:"Files",t:"Duplicates",ic:"copy",g:["#9d174d","#f472b6"],sub:"Find identical copies of files and keep just one.",
+  feats:["Compares file contents, not just names","Always keeps the oldest copy","Skips iCloud-only files"],verb:"Remove",noun:"duplicates",direct:1}};
+const OPTS={
+ junk:[["junk_kb","Unnecessary files over",[["0","Any size"],["1","1 KB"],["100","100 KB"],["1024","1 MB"],["10240","10 MB"]],"0"]],
+ large:[["large_mb","Large files over",[["1","1 MB"],["10","10 MB"],["50","50 MB"],["100","100 MB"],["200","200 MB"],["500","500 MB"],["1024","1 GB"]],"200"],
+        ["days","Old downloads over",[["30","30 days"],["90","90 days"],["180","180 days"],["365","1 year"]],"90"]],
+ dupes:[["min_kb","Files over",[["1","1 KB"],["100","100 KB"],["1024","1 MB"],["10240","10 MB"]],"1024"]],
+ apps:[["app_days","Unused for",[["30","30 days"],["90","90 days"],["180","180 days"],["365","1 year"]],"90"]]};
+const S={};for(const k in M)S[k]={phase:"intro",data:null,sel:new Set(),cat:0,open:new Set(),q:"",sort:"size",opts:{}};
+for(const k in OPTS)OPTS[k].forEach(o=>S[k].opts[o[0]]=o[3]);
+let cur="smart",disk=null,fda=true,bgFlip=false,tick=null;
+
+// ─── utils ───
+const $=s=>document.querySelector(s);
+const fmt=b=>{if(b==null)return"—";const u=["B","KB","MB","GB","TB"];let i=0;while(b>=1000&&i<4){b/=1000;i++}return(i>2?b.toFixed(b<10?2:1):b.toFixed(0))+" "+u[i]};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function api(method,url,body){return new Promise((res,rej)=>{const x=new XMLHttpRequest();x.open(method,url);x.setRequestHeader("X-Token",TOKEN);
+ if(body)x.setRequestHeader("Content-Type","application/json");x.responseType="text";
+ x.onload=()=>{if(x.status!==200)return rej(new Error("The app returned an error ("+x.status+")"));try{res(JSON.parse(String(x.responseText)))}catch(e){rej(e)}};
+ x.onerror=()=>rej(new Error("Lost connection to the cleaner engine"));x.send(body?JSON.stringify(body):null)})}
+function toast(msg,ms=3500){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms)}
+function modal(title,msg,ok="Continue",danger=false){return new Promise(r=>{const m=document.createElement("div");m.className="modal";
+ m.innerHTML=`<div class="card"><h3>${esc(title)}</h3><p>${esc(msg)}</p><div class="btns"><button class="btn" data-v="0">Cancel</button><button class="btn ${danger?"danger":"primary"}" data-v="1">${esc(ok)}</button></div></div>`;
+ m.onclick=e=>{const v=e.target.dataset.v;if(v!=null||e.target===m){m.remove();r(v==="1")}};document.body.appendChild(m)})}
+function setBg(k){const [a,b]=M[k].g;const on=bgFlip?$("#bgA"):$("#bgB"),off=bgFlip?$("#bgB"):$("#bgA");
+ on.style.setProperty("--a",a+"cc");on.style.setProperty("--b",b+"99");on.style.opacity=1;off.style.opacity=0;bgFlip=!bgFlip;
+ document.documentElement.style.setProperty("--g1",a)}
+const allItems=st=>{const m=new Map();(st.data?.categories||[]).forEach(c=>c.items.forEach(i=>{m.set(i.id,i);i.children.forEach(k=>m.set(k.id,k))}));return m};
+function selInfo(st){const m=allItems(st);let size=0,n=0,perm=0,trash=0;st.sel.forEach(id=>{const i=m.get(id);if(!i)return;n++;size+=i.size||0;i.permanent?perm+=i.size||0:trash+=i.size||0});return{n,size,perm,trash}}
+function uniqTotal(st){let t=0;allItems(st).forEach(i=>t+=i.size||0);return t}
+function selectItem(st,i,on){[i,...i.children].forEach(x=>on?st.sel.add(x.id):st.sel.delete(x.id))}
+
+// ─── sidebar ───
+function side(){let h="",g=null;for(const k in M){const m=M[k];if(m.grp!==g){g=m.grp;if(g)h+=`<h6>${g}</h6>`}
+ const st=S[k],badge=st.phase==="results"&&st.data&&!M[k].custom?fmt(uniqTotal(st)):"";
+ h+=`<button class="nav ${k===cur?"on":""}" data-k="${k}"><span class="ic" style="background:linear-gradient(150deg,${m.g[0]},${m.g[1]})">${svg(m.ic)}</span>${m.t}<span class="badge">${badge}</span></button>`}
+ if(disk){const pct=disk.used/disk.total*100;h+=`<div class="diskbox"><b>Macintosh HD</b><div class="bar"><div style="width:${pct}%"></div></div><span style="color:var(--muted)">${fmt(disk.free)} free of ${fmt(disk.total)}</span></div>`}
+ $("#side").innerHTML=h;$("#side").querySelectorAll(".nav").forEach(b=>b.onclick=()=>go(b.dataset.k))}
+function go(k){cur=k;setBg(k);side();render()}
+async function refreshStatus(){try{const r=await api("GET","/api/status");disk=r.disk;fda=r.fda;side()}catch(e){}}
+
+// ─── rendering ───
+function render(){const v=$("#view");v.style.animation="none";v.offsetHeight;v.style.animation="";
+ const m=M[cur],st=S[cur];
+ if(cur==="lens")return renderLens(v);if(cur==="maint")return renderMaint(v);if(cur==="smart")return renderSmart(v);
+ if(st.phase==="intro")return renderIntro(v);if(st.phase==="scanning")return renderBusy(v,`Scanning ${m.t}…`);
+ if(st.phase==="cleaning")return renderBusy(v,`${m.verb==="Uninstall"?"Uninstalling":m.verb==="Empty"?"Emptying":"Cleaning"}…`);
+ if(st.phase==="done")return renderDone(v,st.result,()=>{st.phase="intro";render()});
+ if(st.phase==="results"&&!st.review&&!m.direct)return renderSummary(v);
+ renderReview(v)}
+function optsHtml(k){return(OPTS[k]||[]).map(([key,label,choices])=>`<label>${label} <select data-o="${key}">${choices.map(([v,t])=>`<option value="${v}" ${S[k].opts[key]===v?"selected":""}>${t}</option>`).join("")}</select></label>`).join("")}
+function bindOpts(v,k){v.querySelectorAll("[data-o]").forEach(s=>s.onchange=()=>{S[k].opts[s.dataset.o]=s.value})}
+function renderIntro(v){const m=M[cur];
+ v.innerHTML=`<div class="hero"><div class="orb pulse">${svg(m.ic,1.6)}</div><h1>${m.t}</h1><p class="sub">${m.sub}</p>
+ <div class="feats">${m.feats.map(f=>`<div>${svg("check")}${f}</div>`).join("")}</div>${OPTS[cur]?`<div class="opts">${optsHtml(cur)}</div>`:""}</div>
+ <div class="dock"><button class="go" id="goBtn">Scan</button></div>`;bindOpts(v,cur);$("#goBtn").onclick=()=>scanMod(cur)}
+function renderBusy(v,text,sub=""){const m=M[cur];const t0=Date.now();
+ v.innerHTML=`<div class="hero"><div class="orb spin">${svg(m.ic,1.6)}</div><h1 style="font-size:24px">${text}</h1><p class="sub" id="busySub">${sub||"This usually takes a few seconds."}</p></div><div class="dock" style="height:128px"></div>`}
+function renderSummary(v){const m=M[cur],st=S[cur],cats=st.data.categories.filter(c=>c.items.length),tot=cats.reduce((a,c)=>a+c.total,0),si=selInfo(st);
+ v.innerHTML=`<div class="hero"><div class="orb">${svg(m.ic,1.6)}</div>
+ ${tot?`<div class="big">${fmt(tot)}</div><p class="sub">of ${m.noun} found${cats.some(c=>c.items.some(i=>i.size==null))?" (plus items macOS doesn’t report a size for)":""}</p>`:`<h1>All clean!</h1><p class="sub">Nothing to remove here right now.</p>`}
+ ${fdaBanner()}
+ <div class="chips">${cats.slice(0,8).map(c=>`<div class="chip"><b>${fmt(c.total)}</b><span>${esc(c.title)}</span></div>`).join("")}</div>
+ ${cats.length?`<p style="margin-top:22px"><button class="link" id="rev">Review details…</button></p>`:""}</div>
+ <div class="dock">${cats.length?`<button class="go" id="goBtn" ${si.n?"":"disabled"}>${m.verb}</button>`:`<button class="go" id="goBtn">Rescan</button>`}
+ <div class="side-info"><b>${fmt(si.size)}</b>selected</div></div>`;
+ if($("#rev"))$("#rev").onclick=()=>{st.review=1;render()};
+ $("#goBtn").onclick=()=>cats.length?doClean(cur):scanMod(cur);bindFda(v)}
+function fdaBanner(){return !fda&&["system","junk","apps"].includes(cur)?`<div class="banner" style="margin-top:18px"><span>${svg("warn")}</span><span>Give Mac Cleaner <b>Full Disk Access</b> to also scan Mail attachments, device backups and other protected folders.</span><button class="pill" id="fdaBtn">Open Settings</button></div>`:""}
+function bindFda(v){const b=v.querySelector("#fdaBtn");if(b)b.onclick=()=>api("POST","/api/open-fda",{})}
+function renderReview(v){const m=M[cur],st=S[cur],cats=st.data.categories;
+ if(st.cat>=cats.length)st.cat=0;const c=cats[st.cat],si=selInfo(st);
+ let items=c.items;if(st.q){const q=st.q.toLowerCase();items=items.filter(i=>(i.name+" "+i.path+" "+i.note).toLowerCase().includes(q))}
+ if(st.sort==="name")items=[...items].sort((a,b)=>a.name.localeCompare(b.name));
+ const catState=c=>{const ids=c.items.flatMap(i=>[i.id,...i.children.map(k=>k.id)]);const n=ids.filter(id=>st.sel.has(id)).length;return n===0?0:n===ids.length?2:1};
+ v.innerHTML=`<div class="toolbar">${m.direct?"":`<button class="pill" id="back">‹ Summary</button>`}<h2>${m.t}</h2><button class="pill" id="rescan">Rescan</button></div>
+ ${!fda&&["system","junk","apps"].includes(cur)?fdaBanner().replace('style="margin-top:18px"',''):""}
+ <div class="review"><div class="pane" id="cats">${cats.map((c,ci)=>{const s=catState(c);return`<div class="cat ${ci===st.cat?"on":""}" data-ci="${ci}">
+  <input type="checkbox" data-cc="${ci}" ${s===2?"checked":""} ${c.items.length?"":"disabled"}><div class="t"><div>${esc(c.title)}</div><small>${c.items.length} item${c.items.length===1?"":"s"}</small></div><span class="sz">${fmt(c.total)}</span></div>`}).join("")}</div>
+ <div class="pane" id="items"><div class="rhead"><h3>${esc(c.title)}</h3><p>${esc(c.desc)}</p>${c.warn?`<div class="warnbox">${esc(c.warn)}</div>`:""}
+  <div class="tools"><input type="search" placeholder="Filter…" id="q" value="${esc(st.q)}"><select id="sort"><option value="size">Sort by size</option><option value="name" ${st.sort==="name"?"selected":""}>Sort by name</option></select></div></div>
+  ${items.length?items.map(i=>rowHtml(st,i)).join(""):`<div class="empty">${c.items.length?"No matches.":"Nothing found here — nice."}</div>`}</div></div>
+ <div class="dock" style="padding-top:16px"><button class="go" id="goBtn" ${si.n?"":"disabled"}>${m.verb}</button><div class="side-info"><b>${fmt(si.size)}</b>${si.n} selected${si.trash?`<br>${fmt(si.trash)} goes to Trash`:""}</div></div>`;
+ v.querySelectorAll("[data-cc]").forEach(cb=>{const s=catState(cats[+cb.dataset.cc]);cb.indeterminate=s===1;
+  cb.onclick=e=>{e.stopPropagation();const cc=cats[+cb.dataset.cc];const on=catState(cc)!==2;cc.items.forEach(i=>selectItem(st,i,on));render()}});
+ v.querySelectorAll(".cat").forEach(el=>el.onclick=()=>{st.cat=+el.dataset.ci;st.q="";render()});
+ v.querySelectorAll("[data-id]").forEach(cb=>cb.onchange=()=>{const id=cb.dataset.id,i=allItems(st).get(id);
+  if(cb.dataset.parent!==undefined)selectItem(st,i,cb.checked);else cb.checked?st.sel.add(id):st.sel.delete(id);keepScroll(render)});
+ v.querySelectorAll("[data-tog]").forEach(b=>b.onclick=()=>{const id=b.dataset.tog;st.open.has(id)?st.open.delete(id):st.open.add(id);keepScroll(render)});
+ v.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>api("POST","/api/reveal",{path:b.dataset.rev}));
+ const q=$("#q");q.oninput=()=>{st.q=q.value;keepScroll(render);const n=$("#q");n.focus();n.setSelectionRange(n.value.length,n.value.length)};
+ $("#sort").onchange=e=>{st.sort=e.target.value;render()};
+ if($("#back"))$("#back").onclick=()=>{st.review=0;render()};$("#rescan").onclick=()=>scanMod(cur);$("#goBtn").onclick=()=>doClean(cur);bindFda(v)}
+function keepScroll(fn){const a=$("#items")?.scrollTop,b=$("#cats")?.scrollTop;fn();if($("#items"))$("#items").scrollTop=a;if($("#cats"))$("#cats").scrollTop=b}
+function rowHtml(st,i){const kids=i.children.length,open=st.open.has(i.id),on=st.sel.has(i.id);
+ const kidSize=i.children.reduce((a,k)=>a+(k.size||0),0);
+ const ic=i.icon?`<img src="/icon?t=${TOKEN}&p=${encodeURIComponent(i.icon)}" onerror="this.outerHTML='<span class=fi>${svg("apps").replace(/"/g,"&quot;")}</span>'">`:`<span class="fi">${svg(i.path.startsWith("/")?"folder":"db")}</span>`;
+ let h=`<div class="row">${kids?`<button class="chev ${open?"open":""}" data-tog="${esc(i.id)}">${svg("chev",2.5)}</button>`:'<span style="width:22px"></span>'}
+ <input type="checkbox" data-id="${esc(i.id)}" ${kids?'data-parent=""':""} ${on?"checked":""}>${ic}
+ <div class="t"><div>${esc(i.name)}</div><small class="${i.warn?"w":""}">${esc(i.warn&&i.warn.length>12?i.warn:i.note||(i.path.startsWith("/")?i.path:""))}${kids?` · ${kids} leftover${kids>1?"s":""} (${fmt(kidSize)})`:""}</small></div>
+ ${i.path.startsWith("/")?`<button class="reveal" data-rev="${esc(i.path)}">Show</button>`:""}<span class="sz">${fmt(i.size==null?null:(i.size||0)+kidSize)}</span></div>`;
+ if(kids&&open)h+=`<div class="kids">${i.children.map(k=>`<div class="row"><input type="checkbox" data-id="${esc(k.id)}" ${st.sel.has(k.id)?"checked":""}><div class="t"><div>${esc(k.name)}</div><small>${esc(k.path)}</small></div><button class="reveal" data-rev="${esc(k.path)}">Show</button><span class="sz">${fmt(k.size)}</span></div>`).join("")}</div>`;
+ return h}
+function renderDone(v,r,again){const m=M[cur];const fails=r.failed||[];
+ v.innerHTML=`<div class="hero"><div class="orb">${svg(r.done.length?"check":"warn",1.6)}</div>
+ ${r.done.length?`<div class="big">${fmt(r.freed+r.trashed)}</div><p class="sub">${r.freed?`${fmt(r.freed)} freed`:""}${r.freed&&r.trashed?" · ":""}${r.trashed?`${fmt(r.trashed)} moved to the Trash — empty it to free that space`:""}</p>`:`<h1>Nothing was removed</h1>`}
+ <p class="sub" style="font-size:13px">${r.done.length} item${r.done.length===1?"":"s"} done${fails.length?`, ${fails.length} skipped`:""}</p>
+ ${fails.length?`<div class="fails">${fails.slice(0,40).map(f=>`<div>• ${esc(nameOf(f.id))} — ${esc(f.error)}</div>`).join("")}</div>`:""}
+ ${r.trashed?`<p style="margin-top:16px"><button class="pill" id="toTrash">Go to Trash Bins</button></p>`:""}</div>
+ <div class="dock"><button class="go" id="goBtn">Done</button></div>`;
+ $("#goBtn").onclick=again;if($("#toTrash"))$("#toTrash").onclick=()=>{S.trash.phase="intro";go("trash");scanMod("trash")}}
+let lastNames=new Map();const nameOf=id=>lastNames.get(id)||id.split("/").pop();
+
+// ─── actions ───
+async function scanMod(k,quiet){const st=S[k];st.phase="scanning";st.review=0;if(!quiet&&cur===k)render();side();
+ try{const q=new URLSearchParams({module:k,...st.opts});const r=await api("GET","/api/scan?"+q);fda=r.fda;st.data=r;st.sel.clear();st.cat=0;st.q="";
+  r.categories.forEach(c=>{if(c.preselect)c.items.forEach(i=>{if(!i.warn)selectItem(st,i,true)})});
+  const firstNonEmpty=r.categories.findIndex(c=>c.items.length);st.cat=Math.max(0,firstNonEmpty);st.phase="results"}
+ catch(e){st.phase="intro";toast("Scan failed: "+e.message)}
+ if(cur===k&&!quiet)render();side()}
+async function doClean(k,ids,skipConfirm){const st=S[k],m=M[k];ids=ids||[...st.sel];if(!ids.length)return;
+ const map=allItems(st);ids.forEach(id=>{const i=map.get(id);if(i)lastNames.set(id,i.name)});
+ const si=selInfo(st);
+ if(!skipConfirm){const lines=[];if(si.perm)lines.push(`${fmt(si.perm)} will be deleted permanently.`);if(si.trash)lines.push(`${fmt(si.trash)} will be moved to the Trash.`);
+  const sys=ids.some(id=>["admin_delete","tm_snapshot","agent_admin"].includes(map.get(id)?.op));if(sys)lines.push("macOS will ask for your password for system items.");
+  const runApps=ids.map(id=>map.get(id)).filter(i=>i&&i.quit);if(runApps.length)lines.push(`Quit first: ${[...new Set(runApps.map(i=>i.note.includes("Quit")?i.note.replace("Quit ","").replace(" first",""):i.name))].slice(0,4).join(", ")}.`);
+  if(!await modal(`${m.verb} ${si.n} item${si.n===1?"":"s"}?`,lines.join("\n"),m.verb,true))return}
+ st.phase="cleaning";if(cur===k)render();
+ try{const r=await api("POST","/api/clean",{ids});disk=r.disk;st.result=r;st.phase="done";S.trash.data&&r.trashed&&(S.trash.phase="intro")}
+ catch(e){toast("Failed: "+e.message);st.phase="results"}
+ if(cur===k)render();side();return st.result}
+
+// ─── Smart Scan ───
+const SMART=["junk","trash","apps","large"];
+function renderSmart(v){const st=S.smart,m=M.smart;
+ if(st.phase==="intro"){v.innerHTML=`<div class="hero"><div class="orb pulse">${svg("sparkle",1.6)}</div><h1>Welcome back</h1><p class="sub">${m.sub}</p>
+  <div class="feats">${m.feats.map(f=>`<div>${svg("check")}${f}</div>`).join("")}</div></div><div class="dock"><button class="go" id="goBtn">Scan</button></div>`;
+  return $("#goBtn").onclick=smartScan}
+ if(st.phase==="scanning"||st.phase==="cleaning"){renderBusy(v,st.phase==="scanning"?"Running Smart Scan…":"Cleaning up…",st.step||"");return}
+ if(st.phase==="done")return renderDone(v,st.result,()=>{st.phase="intro";render()});
+ const jt=["junk","trash"].reduce((a,k)=>a+selInfo(S[k]).size,0),jall=["junk","trash"].reduce((a,k)=>a+(S[k].data?.categories.reduce((x,c)=>x+c.total,0)||0),0);
+ const unused=S.apps.data?.categories[0]||{items:[],total:0},large=S.large.data?.categories[0]||{items:[],total:0};
+ v.innerHTML=`<div class="hero"><div class="orb">${svg("sparkle",1.6)}</div><div class="big">${fmt(jt)}</div><p class="sub">of junk ready to clean</p>
+ <div class="tiles">
+  <div class="tile"><span class="ic" style="background:linear-gradient(150deg,${M.junk.g})">${svg("broom")}</span><b>${fmt(jall)}</b><span>System junk & Trash</span><button class="pill" data-go="junk">Review</button></div>
+  <div class="tile"><span class="ic" style="background:linear-gradient(150deg,${M.apps.g})">${svg("apps")}</span><b>${unused.items.length} app${unused.items.length===1?"":"s"}</b><span>Not opened in ${S.apps.opts.app_days} days</span><button class="pill" data-go="apps">Review</button></div>
+  <div class="tile"><span class="ic" style="background:linear-gradient(150deg,${M.large.g})">${svg("file")}</span><b>${fmt(large.total)}</b><span>${large.items.length} large file${large.items.length===1?"":"s"}</span><button class="pill" data-go="large">Review</button></div>
+ </div><p class="sub" style="font-size:12px;margin-top:18px">Want more space? Try <button class="link" data-go="system">System Data</button> — that’s where the biggest hidden files usually are.</p></div>
+ <div class="dock"><button class="go" id="goBtn" ${jt?"":"disabled"}>Clean</button><div class="side-info"><b>${fmt(jt)}</b>junk selected</div></div>`;
+ v.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const k=b.dataset.go;if(k==="junk"||k==="trash")S[k].review=1;go(k);if(!S[k].data)scanMod(k)});
+ $("#goBtn").onclick=smartClean}
+async function smartScan(){const st=S.smart;st.phase="scanning";render();
+ const names={junk:"Looking for junk…",trash:"Checking the Trash…",apps:"Reviewing your apps…",large:"Finding large files…"};
+ for(const k of SMART){st.step=names[k];if(cur==="smart"){const s=$("#busySub");if(s)s.textContent=st.step}await scanMod(k,true)}
+ st.phase="results";if(cur==="smart")render()}
+async function smartClean(){const st=S.smart;const ids=[...S.junk.sel,...S.trash.sel];const tot=selInfo(S.junk).size+selInfo(S.trash).size;
+ const sys=[...S.junk.sel].some(id=>allItems(S.junk).get(id)?.op==="admin_delete");
+ if(!await modal(`Clean ${fmt(tot)} of junk?`,"Caches, logs, temp files and the Trash will be deleted permanently."+(sys?"\nmacOS will ask for your password for system caches and logs.":""),"Clean",true))return;
+ st.phase="cleaning";st.step="Removing junk…";render();
+ const r1=await doClean("junk",[...S.junk.sel],true)||{done:[],failed:[],freed:0,trashed:0};
+ const r2=S.trash.sel.size?await doClean("trash",[...S.trash.sel],true)||{done:[],failed:[],freed:0,trashed:0}:{done:[],failed:[],freed:0,trashed:0};
+ S.junk.phase=S.trash.phase="intro";
+ st.result={done:[...r1.done,...r2.done],failed:[...r1.failed,...r2.failed],freed:r1.freed+r2.freed,trashed:r1.trashed+r2.trashed};st.phase="done";go("smart")}
+
+// ─── Space Lens ───
+// One scan of the whole tree up front; browsing afterwards is instant because every folder is already measured.
+const L={st:null,data:null,sel:new Set(),poll:null,scope:"home"};
+async function lensStart(scope){L.scope=scope;L.data=null;L.sel.clear();
+ try{L.st=await api("POST","/api/lens/start",{scope})}catch(e){return toast(e.message)}if(cur==="lens")render();lensPoll()}
+function lensPoll(){clearTimeout(L.poll);L.poll=setTimeout(async()=>{try{L.st=await api("GET","/api/lens/status")}catch(e){return}
+ if(L.st.running){if(cur==="lens")lensProgress();lensPoll()}else{await lensGo(null)}},350)}
+function lensProgress(){const st=L.st,f=$("#lp-files");if(!f)return render();
+ f.textContent=st.files.toLocaleString();$("#lp-bytes").textContent=fmt(st.bytes);$("#lp-cur").textContent=st.current;$("#lp-time").textContent=Math.round(st.seconds)+"s"}
+async function lensGo(path){try{const d=await api("GET","/api/lens?path="+encodeURIComponent(path||""));
+  if(d.missing)return toast("That folder isn’t part of this scan");L.data=d;L.sel.clear()}catch(e){toast(e.message)}
+ if(cur==="lens")render();const it=$("#items");if(it)it.scrollTop=0}
+const LENS_QS={home:[["Home",""],["Library","/Library"],["Downloads","/Downloads"],["Pictures","/Pictures"],["Documents","/Documents"],["Desktop","/Desktop"]],
+ disk:[["Macintosh HD","/"],["Home","~"],["~/Library","~/Library"],["Applications","/Applications"],["/Library","/Library"],["System Data (/private)","/private"],["macOS (/System)","/System"]]};
+function renderLens(v){
+ if(L.st?.running){v.innerHTML=`<div class="hero"><div class="orb spin">${svg("lens",1.6)}</div><h1 style="font-size:24px">Mapping ${L.st.scope==="disk"?"your whole Mac":"your home folder"}…</h1>
+  <div class="chips"><div class="chip"><b id="lp-files">${L.st.files.toLocaleString()}</b><span>files found</span></div><div class="chip"><b id="lp-bytes">${fmt(L.st.bytes)}</b><span>measured</span></div><div class="chip"><b id="lp-time">${Math.round(L.st.seconds)}s</b><span>elapsed</span></div></div>
+  <p class="sub" style="font-size:12px;margin-top:18px;max-width:640px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="lp-cur">${esc(L.st.current)}</p></div><div class="dock" style="height:128px"></div>`;return}
+ if(!L.data){v.innerHTML=`<div class="hero"><div class="orb pulse">${svg("lens",1.6)}</div><h1>Space Lens</h1><p class="sub">Map every file and folder in one scan, then browse instantly to find what’s eating your space.</p>
+  <div class="feats"><div>${svg("check")}Every file and folder, measured in one pass</div><div>${svg("check")}Click into any folder instantly — no waiting</div><div>${svg("check")}Remove things from your home folder right here</div></div>
+  <div class="opts"><label><input type="radio" name="scope" value="home" ${L.scope==="home"?"checked":""} style="accent-color:#fff"> Home folder <span style="color:var(--dim)">(~40 s)</span></label>
+  <label><input type="radio" name="scope" value="disk" ${L.scope==="disk"?"checked":""} style="accent-color:#fff"> Whole Mac <span style="color:var(--dim)">(~1 min)</span></label></div></div>
+  <div class="dock"><button class="go" id="goBtn">Scan</button></div>`;
+  v.querySelectorAll("[name=scope]").forEach(r=>r.onchange=()=>L.scope=r.value);return $("#goBtn").onclick=()=>lensStart(L.scope)}
+ const d=L.data,max=d.rows[0]?.size||1,root=d.root,home=homePath();
+ const rel=d.path===root?[]:d.path.slice(root==="/"?1:root.length+1).split("/");
+ let acc=root;const rootName=root==="/"?"Macintosh HD":"Home";
+ const crumbs=[`<button data-p="${esc(root)}">${rootName}</button>`].concat(rel.map(p=>{acc=acc==="/"?"/"+p:acc+"/"+p;return`<span>›</span><button data-p="${esc(acc)}">${esc(p)}</button>`}));
+ const qs=(LENS_QS[L.st?.scope||L.scope]||[]).map(([t,p])=>{const full=p.startsWith("~")?home+p.slice(1):root==="/"?(p||"/"):root+p;return`<button data-p="${esc(full)}">${t}</button>`}).join("");
+ const selSize=d.rows.filter(r=>L.sel.has(r.id)).reduce((a,r)=>a+(r.size||0),0);
+ const hidden=root==="/"&&d.path==="/"&&disk?Math.max(0,disk.used-d.total):0;
+ v.innerHTML=`<div class="toolbar"><h2>Space Lens</h2><span class="sz" style="font-size:15px">${fmt(d.total)}</span>
+  <span style="color:var(--muted);font-size:12px">${(L.st?.files||0).toLocaleString()} files · scanned in ${Math.round(L.st?.seconds||0)}s</span><button class="pill" id="rescan">Rescan</button><button class="pill" id="newscope">${root==="/"?"Home only":"Whole Mac"}</button></div>
+ <div class="qs">${qs}</div><div class="crumbs">${crumbs.join("")}</div>
+ <div class="pane" style="margin:0 22px;flex:1" id="items">${d.parent?`<div class="lrow dir"><span style="width:18px"></span><span style="width:24px;display:grid;place-items:center;opacity:.8">${svg("folder")}</span><div class="t" data-p="${esc(d.parent)}">.. (up one level)</div></div>`:""}
+ ${d.rows.map(r=>`<div class="lrow ${r.dir?"dir":""}"><div class="barbg" style="width:${Math.max(.5,(r.size||0)/max*100)}%"></div>
+  ${r.removable?`<input type="checkbox" data-l="${esc(r.id)}" ${L.sel.has(r.id)?"checked":""}>`:'<span style="width:18px"></span>'}
+  <span style="width:24px;display:grid;place-items:center;opacity:.8">${svg(r.dir?"folder":"file")}</span>
+  <div class="t" ${r.dir?`data-p="${esc(r.path)}"`:""}>${esc(r.name)}${r.dir?' <span style="color:var(--dim)">›</span>':""}${r.note?` <span style="color:var(--dim);font-size:11px">· ${esc(r.note)}</span>`:""}</div><button class="reveal" data-rev="${esc(r.path)}">Show</button><span class="sz">${fmt(r.size)}</span></div>`).join("")}
+ ${d.more.count?`<div class="lrow"><span style="width:18px"></span><span style="width:24px"></span><div class="t" style="color:var(--muted)">${d.more.count.toLocaleString()} smaller items</div><span class="sz" style="color:var(--muted)">${fmt(d.more.size)}</span></div>`:""}
+ ${hidden>1e9?`<div class="lrow"><span style="width:18px"></span><span style="width:24px;display:grid;place-items:center;opacity:.6">${svg("warn")}</span><div class="t" style="color:var(--muted)">Protected, purgeable & snapshot space macOS doesn’t let apps measure</div><span class="sz" style="color:var(--muted)">~${fmt(hidden)}</span></div>`:""}
+ ${!d.rows.length?`<div class="empty">${d.readable?"Empty folder.":"macOS didn’t let Mac Cleaner read this folder."+(fda?"":" Granting Full Disk Access may help.")}</div>`:""}</div>
+ <div class="dock" style="padding-top:16px"><button class="go" id="goBtn" ${L.sel.size?"":"disabled"}>Remove</button><div class="side-info"><b>${fmt(selSize)}</b>${L.sel.size} selected · goes to Trash</div></div>`;
+ v.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>lensGo(b.dataset.p));
+ v.querySelectorAll("[data-l]").forEach(c=>c.onchange=()=>{c.checked?L.sel.add(c.dataset.l):L.sel.delete(c.dataset.l);keepScroll(render)});
+ v.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>api("POST","/api/reveal",{path:b.dataset.rev}));
+ $("#rescan").onclick=()=>lensStart(L.st?.scope||L.scope);$("#newscope").onclick=()=>lensStart(root==="/"?"home":"disk");
+ $("#goBtn").onclick=async()=>{if(!await modal(`Move ${L.sel.size} item${L.sel.size>1?"s":""} to the Trash?`,`${fmt(selSize)} will be moved to the Trash.`,"Remove",true))return;
+  const r=await api("POST","/api/clean",{ids:[...L.sel]});disk=r.disk;side();toast(`Moved ${r.done.length} item(s) to the Trash`+(r.failed.length?` · ${r.failed.length} failed`:""));lensGo(d.path)}}
+// Resume a scan that is still running (or finished) if the window was reloaded.
+api("GET","/api/lens/status").then(st=>{L.st=st;if(st.running)lensPoll();else if(st.ready)lensGo(null)}).catch(()=>{});
+let HOME="";const homePath=()=>HOME;
+
+// ─── Maintenance ───
+const TASKS=[["ram","Free up RAM","Clears inactive memory so apps have room to run.",1],["dns","Flush DNS cache","Fixes websites that won’t load or point to old addresses.",1],
+ ["snapshots","Thin Time Machine snapshots","Removes local backup snapshots that hide used space.",1],["launchservices","Rebuild Launch Services","Fixes duplicate apps in “Open With” menus and wrong default apps.",0],
+ ["quicklook","Reset Quick Look","Fixes blank or outdated file previews.",0],["fonts","Clear font caches","Fixes garbled or missing fonts. Restart afterwards.",0],
+ ["spotlight","Reindex Spotlight","Fixes search that misses files. Re-indexing runs in the background for a while.",1]];
+const MT={sel:new Set(["ram","dns","launchservices","quicklook"]),res:{},busy:false};
+function renderMaint(v){v.innerHTML=`<div class="toolbar"><h2>Maintenance</h2></div>
+ <div class="tasks">${TASKS.map(([k,t,d,a])=>`<label class="task"><input type="checkbox" data-t="${k}" ${MT.sel.has(k)?"checked":""}><div class="t"><b>${t}</b>${a?'<span class="tag">password</span>':""}<p>${d}</p></div>
+ ${k in MT.res?`<span class="res ${MT.res[k]?"bad":"ok"}">${MT.res[k]?esc(MT.res[k]):"✓ Done"}</span>`:""}</label>`).join("")}</div>
+ <div class="dock" style="padding-top:16px"><button class="go" id="goBtn" ${MT.sel.size&&!MT.busy?"":"disabled"}>${MT.busy?"…":"Run"}</button><div class="side-info"><b>${MT.sel.size}</b>tasks selected</div></div>`;
+ v.querySelectorAll("[data-t]").forEach(c=>c.onchange=()=>{c.checked?MT.sel.add(c.dataset.t):MT.sel.delete(c.dataset.t);render()});
+ $("#goBtn").onclick=async()=>{MT.busy=true;MT.res={};render();try{const r=await api("POST","/api/maint",{tasks:[...MT.sel]});MT.res=r.results;disk=r.disk;side()}catch(e){toast(e.message)}MT.busy=false;if(cur==="maint")render()}}
+
+// ─── boot ───
+api("GET","/api/status").then(r=>{disk=r.disk;fda=r.fda;HOME=r.home;side()}).catch(e=>toast(e.message));
+go("smart");setInterval(refreshStatus,30000);
+window.MacCleaner={S,go,scanMod,smartScan,lensGo,lensStart,L};
+})();
+</script></body></html>
