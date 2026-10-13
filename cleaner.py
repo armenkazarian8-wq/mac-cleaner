@@ -957,6 +957,12 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, {"results": maintain(body.get("tasks", [])), "disk": disk_status()})
         elif self.path == "/api/lens/start":
             self._send(200, lens_start("disk" if body.get("scope") == "disk" else "home"))
+        elif self.path == "/api/open":
+            path = body.get("path", "")
+            if os.path.exists(path):
+                # Folders open in Finder, files in their default app. App bundles are revealed, never launched.
+                run(["open", "-R", path] if path.endswith(".app") else ["open", path])
+            self._send(200, {"ok": os.path.exists(path)})
         elif self.path == "/api/reveal":
             run(["open", "-R", body.get("path", "")])
             self._send(200, {})

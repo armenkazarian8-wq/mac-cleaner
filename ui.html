@@ -91,7 +91,7 @@ select option{color:#000}
 .chev{width:22px;height:22px;display:grid;place-items:center;border-radius:6px;flex:none;color:var(--muted);transition:transform .15s}
 .chev:hover{background:rgba(255,255,255,.1)}.chev.open{transform:rotate(90deg)}.chev svg{width:12px;height:12px}
 .kids .row{padding-left:66px;background:rgba(0,0,0,.12)}
-.reveal{opacity:0;padding:3px 8px;border-radius:6px;background:var(--panel2);font-size:11px}.row:hover .reveal{opacity:1}
+.reveal{opacity:0;padding:3px 8px;border-radius:6px;background:var(--panel2);font-size:11px}.row:hover .reveal,.lrow:hover .reveal{opacity:1}.reveal:hover{background:rgba(255,255,255,.28)}.lrow .reveal{margin-left:4px}
 .empty{padding:50px 20px;text-align:center;color:var(--muted)}
 .banner{margin:0 22px 12px;padding:10px 14px;border-radius:12px;background:rgba(251,191,36,.14);border:1px solid rgba(251,191,36,.35);display:flex;gap:10px;align-items:center}
 .banner span{flex:1;text-align:left}.banner span:first-child{flex:none;display:grid}.banner svg{width:20px;height:20px;color:var(--warnc)}.hero .banner{max-width:620px;margin-left:0;margin-right:0}.toolbar{display:flex;align-items:center;gap:14px;padding:0 24px 12px}
@@ -363,13 +363,13 @@ function renderLens(v){
  const selSize=d.rows.filter(r=>L.sel.has(r.id)).reduce((a,r)=>a+(r.size||0),0);
  const hidden=root==="/"&&d.path==="/"&&disk?Math.max(0,disk.used-d.total):0;
  v.innerHTML=`<div class="toolbar"><h2>Space Lens</h2><span class="sz" style="font-size:15px">${fmt(d.total)}</span>
-  <span style="color:var(--muted);font-size:12px">${(L.st?.files||0).toLocaleString()} files · scanned in ${Math.round(L.st?.seconds||0)}s</span><button class="pill" id="rescan">Rescan</button><button class="pill" id="newscope">${root==="/"?"Home only":"Whole Mac"}</button></div>
+  <span style="color:var(--muted);font-size:12px">${(L.st?.files||0).toLocaleString()} files · scanned in ${Math.round(L.st?.seconds||0)}s</span><button class="pill" id="openhere">Open in Finder</button><button class="pill" id="rescan">Rescan</button><button class="pill" id="newscope">${root==="/"?"Home only":"Whole Mac"}</button></div>
  <div class="qs">${qs}</div><div class="crumbs">${crumbs.join("")}</div>
  <div class="pane" style="margin:0 22px;flex:1" id="items">${d.parent?`<div class="lrow dir"><span style="width:18px"></span><span style="width:24px;display:grid;place-items:center;opacity:.8">${svg("folder")}</span><div class="t" data-p="${esc(d.parent)}">.. (up one level)</div></div>`:""}
  ${d.rows.map(r=>`<div class="lrow ${r.dir?"dir":""}"><div class="barbg" style="width:${Math.max(.5,(r.size||0)/max*100)}%"></div>
   ${r.removable?`<input type="checkbox" data-l="${esc(r.id)}" ${L.sel.has(r.id)?"checked":""}>`:'<span style="width:18px"></span>'}
   <span style="width:24px;display:grid;place-items:center;opacity:.8">${svg(r.dir?"folder":"file")}</span>
-  <div class="t" ${r.dir?`data-p="${esc(r.path)}"`:""}>${esc(r.name)}${r.dir?' <span style="color:var(--dim)">›</span>':""}${r.note?` <span style="color:var(--dim);font-size:11px">· ${esc(r.note)}</span>`:""}</div><button class="reveal" data-rev="${esc(r.path)}">Show</button><span class="sz">${fmt(r.size)}</span></div>`).join("")}
+  <div class="t" ${r.dir?`data-p="${esc(r.path)}"`:""}>${esc(r.name)}${r.dir?' <span style="color:var(--dim)">›</span>':""}${r.note?` <span style="color:var(--dim);font-size:11px">· ${esc(r.note)}</span>`:""}</div><button class="reveal" data-open="${esc(r.path)}">${r.dir&&!r.name.endsWith(".app")?"Open in Finder":r.name.endsWith(".app")?"Show":"Open"}</button>${r.name.endsWith(".app")?"":`<button class="reveal" data-rev="${esc(r.path)}">Show</button>`}<span class="sz">${fmt(r.size)}</span></div>`).join("")}
  ${d.more.count?`<div class="lrow"><span style="width:18px"></span><span style="width:24px"></span><div class="t" style="color:var(--muted)">${d.more.count.toLocaleString()} smaller items</div><span class="sz" style="color:var(--muted)">${fmt(d.more.size)}</span></div>`:""}
  ${hidden>1e9?`<div class="lrow"><span style="width:18px"></span><span style="width:24px;display:grid;place-items:center;opacity:.6">${svg("warn")}</span><div class="t" style="color:var(--muted)">Protected, purgeable & snapshot space macOS doesn’t let apps measure</div><span class="sz" style="color:var(--muted)">~${fmt(hidden)}</span></div>`:""}
  ${!d.rows.length?`<div class="empty">${d.readable?"Empty folder.":"macOS didn’t let Mac Cleaner read this folder."+(fda?"":" Granting Full Disk Access may help.")}</div>`:""}</div>
@@ -377,6 +377,8 @@ function renderLens(v){
  v.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>lensGo(b.dataset.p));
  v.querySelectorAll("[data-l]").forEach(c=>c.onchange=()=>{c.checked?L.sel.add(c.dataset.l):L.sel.delete(c.dataset.l);keepScroll(render)});
  v.querySelectorAll("[data-rev]").forEach(b=>b.onclick=()=>api("POST","/api/reveal",{path:b.dataset.rev}));
+ v.querySelectorAll("[data-open]").forEach(b=>b.onclick=e=>{e.stopPropagation();api("POST","/api/open",{path:b.dataset.open})});
+ $("#openhere").onclick=()=>api("POST","/api/open",{path:d.path});
  $("#rescan").onclick=()=>lensStart(L.st?.scope||L.scope);$("#newscope").onclick=()=>lensStart(root==="/"?"home":"disk");
  $("#goBtn").onclick=async()=>{if(!await modal(`Move ${L.sel.size} item${L.sel.size>1?"s":""} to the Trash?`,`${fmt(selSize)} will be moved to the Trash.`,"Remove",true))return;
   const r=await api("POST","/api/clean",{ids:[...L.sel]});disk=r.disk;side();toast(`Moved ${r.done.length} item(s) to the Trash`+(r.failed.length?` · ${r.failed.length} failed`:""));lensGo(d.path)}}
